@@ -5,31 +5,43 @@ session**. This folder keeps them in sync. Read this file before starting any wo
 
 ## The goal
 
-Let a user upload their own source and target CSV files (plus an optional pipeline run log), check them
-with deterministic validations, and have the AI investigate what went wrong. The bundled demo stays
-available as a "Try the demo" option.
+A user picks an **existing target table**, uploads **one CSV file** to load into it, and the application runs a
+real load pipeline:
+
+```
+target table → upload CSV → run pipeline (parse, validate against the table's schema, load)
+   → LOADED: the rows are in the table
+   → FAILED: nothing is loaded; real failure evidence (checks, row issues, pipeline log)
+        → AI investigation of that evidence: root cause, evidence, recommended fix
+        → the user corrects the file and uploads it again → validation passes → LOADED
+```
+
+The AI only ever sees evidence the application produced for that run. Nothing is hardcoded.
 
 ## Phases
 
 | Phase | Goal | Status |
 |---|---|---|
-| 0. Setup | This folder, the API contract, and the Phase 1 instructions | Done |
-| 1. Upload | Upload the source CSV, the target CSV and an optional run log; preview them | Ready to start |
-| 2. Column mapping and checks on any CSV | Map the key and optional columns; run checks on uploaded data | Not started |
-| 3. AI on uploaded data | Investigate an uploaded run with the AI | Not started |
-| 4. Finishing | Large-file limits, a consistent error format, tests, one-command start, demo walkthrough | Not started |
-
-The FE session writes the detailed instructions for a phase at its start (see "How a phase runs"),
-because each phase builds on what the previous one produced. Phases 2 to 4 above are outlines until then.
+| 0. Setup | This folder, the API contract, and the process | Done |
+| 1. Two-file upload | Upload a source CSV and a target CSV to compare | **Cancelled.** Replaced by Phase 2. Don't implement `phase-1/` |
+| 2. Target load flow | Target tables in SQLite, single-CSV runs, validation from the table schema, all-or-nothing load, AI investigation of a failed run, corrected re-upload | Contract ready |
+| 3. Finishing | Demo walkthrough, one-command start, polish, anything left from Phase 2 | Not started |
 
 ### Decisions already made
-- The pipeline run file is **optional**. Without one, the Pipeline steps and Logs views are hidden and the AI
-  works from the data checks only.
-- Uploaded runs are stored **in memory** in the backend. They are lost when the backend restarts.
-- Upload limits: **10 MB and 50,000 data rows per CSV file**, **1 MB** for the run log.
-- The bundled demo stays, behind a **Try the demo** option.
-- The code stays in its current layout (`src/`, `tests/`, `frontend/`). Moving it into `backend/` is out
-  of scope, because it would touch every file and cause merge conflicts between the sessions.
+- Target tables live in a **SQLite** database file owned by the backend. They're created and seeded when the
+  backend starts, and a reset endpoint restores the seed data so the demo can be repeated.
+- The validation rules come from the **target table's schema** (types, nullability, primary key, formats,
+  allowed values). They are not hardcoded per demo file.
+- **All or nothing:** if any check fails, no rows are loaded.
+- A failed run is a normal result, not an HTTP error. Creating a run always returns `201`, with `status`
+  `LOADED` or `FAILED`.
+- Runs, including their investigation result, are stored **in memory** and lost when the backend restarts.
+  The target table data persists in SQLite.
+- Upload limit: **10 MB and 50,000 data rows** for the CSV.
+- The backend owns the demo files (a failing file and its corrected version) and serves them. The frontend
+  doesn't bundle copies.
+- The original demo endpoints (`/api/demo/*`, `/api/investigate`) stay unchanged and keep working.
+- The code stays in its current layout (`src/`, `tests/`, `frontend/`).
 
 ## Who owns what
 
@@ -37,7 +49,7 @@ because each phase builds on what the previous one produced. Phases 2 to 4 above
 |---|---|---|
 | `src/`, `tests/`, `data/`, `requirements.txt`, `example_usage.py`, root `.env.example` | BE session | |
 | `frontend/` | FE session | |
-| `docs/implementation/` | FE session | The BE session only fills in the "Completion report" section of its own phase file |
+| `docs/implementation/` | FE session | The BE session only fills in the "Questions" and "Completion report" sections of its own phase file |
 | Root `README.md` | Shared | BE edits the backend and run sections; FE edits the frontend sections |
 | `CLAUDE.md` | FE session | |
 

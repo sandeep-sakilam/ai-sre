@@ -1,3 +1,6 @@
+> **CANCELLED. Do not implement this file.** The two-file upload was replaced by the target load flow.
+> Work from [`../phase-2/BE.md`](../phase-2/BE.md) and the "Phase 2" section of [`../CONTRACT.md`](../CONTRACT.md).
+
 # Phase 1: Backend instructions (uploads)
 
 For the **BE session**. Read [`../README.md`](../README.md) (process and ownership) and the "Phase 1:
